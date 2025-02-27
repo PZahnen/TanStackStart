@@ -24,3 +24,16 @@ The following files were manually created before installing shadcn:
 ## Project Goal
 
 This project aims to create a small trivia quiz app using the [Open Trivia Database](https://opentdb.com/) API. The main purpose is to gain hands-on experience with TanStack Start and its ecosystem.
+
+## Current Status
+
+- General Quiz is fully implemented
+- Music Quiz is partially implemented (work in progress)
+
+## Development
+
+To run the project locally:
+
+```bash
+npm run dev
+```
