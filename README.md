@@ -20,3 +20,7 @@ The following files were manually created before installing shadcn:
 - `postcss.config.tsx`
 - `app/styles.css` (imported in `__root.tsx`)
 - `app/lib/utils.ts` (required for shadcn/ui)
+
+## Project Goal
+
+This project aims to create a small trivia quiz app using the [Open Trivia Database](https://opentdb.com/) API. The main purpose is to gain hands-on experience with TanStack Start and its ecosystem.
