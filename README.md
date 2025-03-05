@@ -27,8 +27,8 @@ This project aims to create a small trivia quiz app using the [Open Trivia Datab
 
 ## Current Status
 
-- General Quiz is fully implemented
-- Music Quiz is partially implemented (work in progress)
+- General Quiz is fully implemented.
+- Music Quiz is fully implemented using TanStack Query.
 
 ## Development
 
