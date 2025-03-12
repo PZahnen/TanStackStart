@@ -7,9 +7,9 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { createServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { decodeHtml } from "@/utils/decodeHtml";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 interface Question {
   category: string;
@@ -20,59 +20,39 @@ interface Question {
   incorrect_answers: string[];
 }
 
-const getQuestions = createServerFn({
+export const fetchQuestions = createServerFn({
   method: "GET",
-}).handler(async () => {
+}).handler(async (): Promise<Question[]> => {
   const response = await fetch("https://opentdb.com/api.php?amount=10");
   const data = await response.json();
-  return data.results as Question[];
+  return data.results;
 });
 
+// Similar to TanStack Query, data loaders are cached on the client and are re-used and even re-fetched in the background when the data is stale.
 export const Route = createFileRoute("/General")({
   component: GeneralQuiz,
-  loader: async () => {
-    const questions = await getQuestions();
-    // Cache the questions in sessionStorage
-    sessionStorage.setItem("quizQuestions", JSON.stringify(questions));
-    return questions;
-  },
+  loader: async () => fetchQuestions(),
 });
 
 function GeneralQuiz() {
   const navigate = useNavigate();
-  const loaderQuestions = Route.useLoaderData();
-  const [questions, setQuestions] = useState<Question[]>(() => {
-    try {
-      const cached = sessionStorage.getItem("quizQuestions");
-      return cached ? JSON.parse(cached) : loaderQuestions;
-    } catch (error) {
-      return loaderQuestions;
-    }
-  });
+  const questions = Route.useLoaderData();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
-  console.log("questions", questions);
 
   useEffect(() => {
-    if (loaderQuestions && Array.isArray(loaderQuestions)) {
-      setQuestions(loaderQuestions);
+    if (!questions || (questions && questions.length === 0)) {
+      const interval = setInterval(async () => {
+        navigate({ to: "/General", replace: true });
+      }, 1000);
+      return () => clearInterval(interval);
     }
-  }, [loaderQuestions]);
+  }, [questions]);
 
-  // Early return for loading state
-  if (!questions || !Array.isArray(questions)) {
-    try {
-      const cached = sessionStorage.getItem("quizQuestions");
-      if (cached) {
-        const parsedQuestions = JSON.parse(cached);
-        setQuestions(parsedQuestions);
-      }
-    } catch (error) {
-      console.error("Error parsing cached questions:", error);
-    }
+  if (!questions) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <p>Loading questions...</p>
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
@@ -100,13 +80,9 @@ function GeneralQuiz() {
             <Button
               className="w-full mt-4"
               onClick={async () => {
-                // Clear current questions from session storage
-                sessionStorage.removeItem("quizQuestions");
-                // Reset states
                 setCurrentQuestion(0);
                 setScore(0);
-                // Reload the route to fetch new questions
-                await navigate({ to: "/General", replace: true });
+                navigate({ to: "/General", replace: true });
               }}
             >
               Play Again

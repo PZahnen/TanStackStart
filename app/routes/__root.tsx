@@ -11,7 +11,9 @@ import "../styles.css";
 
 const queryClient = new QueryClient();
 
-export const Route = createRootRoute({
+export const Route = createRootRoute<{
+  queryClient: QueryClient;
+}>({
   head: () => ({
     meta: [
       {
