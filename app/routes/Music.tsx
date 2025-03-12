@@ -162,7 +162,6 @@ function MusicQuiz() {
                     queryKey: ["MusicQuestions"],
                     queryFn: fetchMusicQuestions,
                   });
-                  navigate({ to: "/Music", replace: true });
                 }}
               >
                 Try Again
