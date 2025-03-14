@@ -20,6 +20,8 @@ interface Question {
   incorrect_answers: string[];
 }
 
+// Similar to TanStack Query, data loaders are cached on the client and are re-used and even re-fetched in the background when the data is stale.
+// No possibility to get isFetching variable though, so old cached data is being displayed in the beginning.
 export const fetchQuestions = createServerFn({
   method: "GET",
 }).handler(async (): Promise<Question[]> => {
@@ -28,7 +30,6 @@ export const fetchQuestions = createServerFn({
   return data.results;
 });
 
-// Similar to TanStack Query, data loaders are cached on the client and are re-used and even re-fetched in the background when the data is stale.
 export const Route = createFileRoute("/General")({
   component: GeneralQuiz,
   loader: async () => fetchQuestions(),

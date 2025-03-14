@@ -6,10 +6,11 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { decodeHtml } from "@/utils/decodeHtml";
+import axios from "axios";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, QueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 interface Question {
@@ -25,53 +26,91 @@ export const Route = createFileRoute("/Music")({
   component: MusicQuiz,
 });
 
+// Wenn man die Daten öfters als alle 3 bis 4s fetched, gibt es einen 500 oder 503 Error.
+// Deshalb nach Verlassen der Komponente in UI 4s warten.
 export const fetchMusicQuestions = createServerFn({
   method: "GET",
 }).handler(async (): Promise<Question[]> => {
-  const response = await fetch(
-    "https://opentdb.com/api.php?amount=10&category=12"
-  );
-  const data = await response.json();
-  return data.results || [];
+  try {
+    const response = await axios.get(
+      "https://opentdb.com/api.php?amount=10&category=12"
+    );
+    if (response.status !== 200) {
+      throw new Error(`Failed to fetch questions: ${response.statusText}`);
+    }
+    return response.data.results || [];
+  } catch (error) {
+    console.error("Error fetching music questions:", error);
+    throw error;
+  }
 });
 
 function MusicQuiz() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
 
+  //Durch isFetching kann man einen Spinner anzeigen, statt die veralteten Cached Daten.
   const {
     isPending,
     isError,
     data: musicQuestions,
-    error,
+    isFetching,
   } = useQuery({
     queryKey: ["MusicQuestions"],
-    queryFn: fetchMusicQuestions,
+    queryFn: async () => {
+      const data = await fetchMusicQuestions();
+      return data;
+    },
+    // staleTime: 1000 * 60 * 5, // Erst nach 5 Minuten wird der Cache als veraltet erkannt und erneuert.
+    // Bedeutet: Wenn das auskommentiert ist, dann ändern sich die Fragen auch bei Genre- oder Tabwechsel nicht.
+    // Nur bei "Play Again".
+    staleTime: 0,
   });
 
-  useEffect(() => {
-    if (
-      isError ||
-      !musicQuestions ||
-      (musicQuestions && musicQuestions.length === 0)
-    ) {
-      const interval = setInterval(async () => {
-        await queryClient.prefetchQuery({
-          queryKey: ["MusicQuestions"],
-          queryFn: fetchMusicQuestions,
-        });
-      }, 1000);
+  console.log("actualQuestions", musicQuestions);
+  console.log("isError", isError, isPending);
 
-      return () => clearInterval(interval);
-    }
-  }, [isError, musicQuestions]);
-
-  if (isPending || !musicQuestions || musicQuestions.length === 0) {
+  if (
+    isFetching ||
+    isPending ||
+    !musicQuestions ||
+    musicQuestions.length === 0
+  ) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Card className="w-[350px]">
+          <CardHeader>
+            <CardTitle>Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl text-center">
+              An error occurred while loading the questions.
+            </p>
+            <Button
+              className="w-full mt-4"
+              onClick={async () => {
+                await queryClient.invalidateQueries({
+                  queryKey: ["MusicQuestions"],
+                });
+                await queryClient.prefetchQuery({
+                  queryKey: ["MusicQuestions"],
+                  queryFn: fetchMusicQuestions,
+                });
+              }}
+            >
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   } else if (!isError && musicQuestions) {
@@ -143,29 +182,6 @@ function MusicQuiz() {
                   </Button>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    } else if (isError) {
-      return (
-        <div className="flex items-center justify-center h-screen">
-          <Card className="w-[350px]">
-            <CardContent style={{ padding: "1rem" }}>
-              <p className="text-2xl text-center">
-                An error occurred while loading the questions.
-              </p>
-              <Button
-                className="w-full mt-4"
-                onClick={async () => {
-                  await queryClient.prefetchQuery({
-                    queryKey: ["MusicQuestions"],
-                    queryFn: fetchMusicQuestions,
-                  });
-                }}
-              >
-                Try Again
-              </Button>
             </CardContent>
           </Card>
         </div>

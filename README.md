@@ -28,7 +28,9 @@ This project aims to create a small trivia quiz app using the [Open Trivia Datab
 ## Current Status
 
 - General Quiz is fully implemented.
-- Music Quiz is fully implemented using TanStack Query.
+- Music Quiz is fully implemented using TanStack Query. Seems to work better this way.
+
+  When fetching data more often than every 3 seconds from API, it will cause an error.
 
 ## Development
 
